@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <DebugType>none</DebugType>
     <GameAssemblies>$(GameDir)/FrontierTale_Data/Managed</GameAssemblies>
     <PackageDirectory>$(MSBuildThisFileDirectory)../vivhite</PackageDirectory>
@@ -11,7 +11,7 @@
     <Reference Include="0Harmony" HintPath="$(PkgLib_Harmony)/lib/net472/0Harmony.dll" Private="false" />
     <EmbeddedResource Include="$(PkgLib_Harmony)/lib/net472/0Harmony.dll" LogicalName="Vivhite.0Harmony.dll" Condition="'$(PkgLib_Harmony)' != ''" />
     <EmbeddedResource Include="$(PkgLib_Harmony)/LICENSE" LogicalName="Vivhite.Harmony-LICENSE.txt" Condition="'$(PkgLib_Harmony)' != ''" />
-    <Reference Include="$(GameAssemblies)/FrontierTale.ModSDK.dll;$(GameAssemblies)/Assembly-CSharp.dll;$(GameAssemblies)/Newtonsoft.Json.dll;$(GameAssemblies)/UniTask.dll;$(GameAssemblies)/UnityEngine.CoreModule.dll;$(GameAssemblies)/UnityEngine.UIModule.dll;$(GameAssemblies)/UnityEngine.ImageConversionModule.dll;$(GameAssemblies)/UnityEngine.UI.dll;$(GameAssemblies)/spine-csharp.dll;$(GameAssemblies)/spine-unity.dll">
+    <Reference Include="$(GameAssemblies)/FrontierTale.ModSDK.dll;$(GameAssemblies)/Assembly-CSharp.dll;$(GameAssemblies)/Newtonsoft.Json.dll;$(GameAssemblies)/UniTask.dll;$(GameAssemblies)/UnityEngine.CoreModule.dll;$(GameAssemblies)/UnityEngine.UIModule.dll;$(GameAssemblies)/UnityEngine.ImageConversionModule.dll;$(GameAssemblies)/UnityEngine.UI.dll;$(GameAssemblies)/Unity.TextMeshPro.dll;$(GameAssemblies)/spine-csharp.dll;$(GameAssemblies)/spine-unity.dll">
       <Private>false</Private>
       <ExternallyResolved>true</ExternallyResolved>
     </Reference>

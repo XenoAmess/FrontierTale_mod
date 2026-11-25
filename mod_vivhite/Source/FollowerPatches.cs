@@ -27,6 +27,8 @@ namespace Vivhite
             art = artwork;
             sacrifice = (Action<MapVillager>)Method(typeof(MapVillager), "Die").CreateDelegate(typeof(Action<MapVillager>));
             harmony = new Harmony(HarmonyId);
+            DualWeapons.Install(harmony);
+            WeaponSlotsUI.Install(harmony);
 
             Prefix(typeof(MapVillager), nameof(MapVillager.CreateAccompanyAsync), nameof(UseVivhiteData),
                 typeof(VillagerData), typeof(bool), typeof(bool), typeof(GameObject), typeof(VillagerObject),
@@ -44,7 +46,7 @@ namespace Vivhite
             Prefix(typeof(LoadUtils), nameof(LoadUtils.LoadSpriteHaveCache), nameof(LoadAvatar), typeof(string), typeof(string));
             Prefix(typeof(DialogueUI), "SwitchSpriteSmoothly", nameof(ShowPortrait), typeof(Image), typeof(string), typeof(float));
 
-            foreach (Type bag in new[] { typeof(TakeBagUI), typeof(WarehouseUI), typeof(WildBagUI) })
+            foreach (Type bag in new[] { typeof(TakeBagUI), typeof(WarehouseUI), typeof(WildBagUI), typeof(SaleBoxUI) })
             {
                 Prefix(bag, "ShowAccompanyDefaultWeapon", nameof(HideDefaultWeaponPanel));
                 Prefix(bag, "ShowDefaultWeaponInfo", nameof(SkipDefaultWeaponInfo));
@@ -52,6 +54,7 @@ namespace Vivhite
                 harmony.Patch(Method(bag, "ShowEquipNode", parameters), postfix: PatchMethod(nameof(HidePanelAfterTabChange)));
             }
             Prefix(typeof(WarehouseUI), "ShowAccompanyDefaultWeaponOnce", nameof(HideDefaultWeaponPanel));
+            Prefix(typeof(SaleBoxUI), "ShowAccompanyDefaultWeaponOnce", nameof(HideDefaultWeaponPanel));
         }
 
         internal static void Remove()
@@ -63,13 +66,16 @@ namespace Vivhite
             sacrifice = null;
         }
 
-        private static bool IsVivhite(VillagerData data) => data?.npcID == VivhiteMod.NpcId;
+        private static bool IsVivhite(VillagerData data) => DualWeapons.IsVivhite(data);
 
         private static void UseVivhiteData(VillagerData data, ref VillagerObject actorData)
         {
             // The stock spawn path otherwise loads the asset by addressable key.
             if (IsVivhite(data))
+            {
+                DualWeapons.EnsureSlots(data);
                 actorData = profile;
+            }
         }
 
         private static bool RequireEquippedWeapon(MapVillager __instance, ref string __result, bool ___usingDefaultWeapon)
@@ -107,10 +113,14 @@ namespace Vivhite
             return false;
         }
 
-        private static void HideFallbackWeapon(VillagerData villagerData, ref bool showWeapon, bool usingDefaultWeapon)
+        private static void HideFallbackWeapon(VillagerData villagerData, ref bool showWeapon, bool usingDefaultWeapon, ref string skinPath)
         {
-            if (IsVivhite(villagerData) && usingDefaultWeapon)
+            if (!IsVivhite(villagerData))
+                return;
+            if (usingDefaultWeapon)
                 showWeapon = false;
+            else if (showWeapon && string.IsNullOrEmpty(skinPath))
+                skinPath = DualWeapons.ActiveSkin(villagerData) ?? string.Empty;
         }
 
         private static void AnimateHeadDirection(VillagerData villagerData, SkeletonAnimation ___skeletonAnimation)
@@ -119,12 +129,15 @@ namespace Vivhite
                 art.BindDirection(___skeletonAnimation);
         }
 
-        private static void RegisterHeadSkin(Skeleton skeleton, ref string headSkin, ref string handSkin, ref string legSkin)
+        private static void RegisterHeadSkin(Skeleton skeleton, ref string headSkin, ref string clothesSkin,
+            ref string handSkin, ref string legSkin)
         {
             if (headSkin != "Head/" + VivhiteMod.HeadSkin)
                 return;
 
             headSkin = art.GetHeadSkin(skeleton);
+            if (clothesSkin == FollowerArt.StockCape)
+                clothesSkin = art.GetCapeSkin(skeleton);
             // These native rig skins dress the empty slots. Equipment continues to supply its own skin.
             if (handSkin == "Hand/Hand_00")
                 handSkin = "Hand/Hand_MaBuChanShou";
@@ -145,8 +158,8 @@ namespace Vivhite
                     break;
                 case VivhiteMod.AbilityKey:
                     __result = english
-                        ? "Genius magical girl. Infinite ammunition for equipped ranged weapons. While following and alive, sacrifices herself on lethal damage and transfers her remaining HP to the player."
-                        : "超天才魔法少女。装备的远程武器弹药无限。跟随且存活时，主角受到致命伤害，白绮牺牲自己，将全部剩余生命转给主角。";
+                        ? "Genius magical girl. Uses two equipped weapons together. No ammunition or mana is consumed when attacking. While following and alive, sacrifices herself on lethal damage and transfers her remaining HP to the player."
+                        : "超天才魔法少女。可同时使用两把武器，攻击不消耗弹药或魔力。跟随且存活时，主角受到致命伤害，白绮牺牲自己，将全部剩余生命转给主角。";
                     break;
                 case VivhiteMod.QuoteKey:
                     __result = "……麻烦死了";

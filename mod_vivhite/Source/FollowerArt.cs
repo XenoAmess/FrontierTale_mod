@@ -12,7 +12,10 @@ namespace Vivhite
     {
         private const string StockHead = "Head/Head_NvPu";
         private const string CustomHead = "Head/" + VivhiteMod.HeadSkin;
-        private const string FrontSlot = "F_Hair04";
+        internal const string StockCape = "Clothes/Cloth_NvWuDouPeng";
+        private const string CustomCape = "Clothes/Cloth_Vivhite";
+        private const string FaceSlot = "F_Head";
+        private const string HairSlot = "F_Hair04";
         private const string DirectionSlot = "F_Hair05";
         private const string BackAttachment = "B_Head2";
         private readonly List<Object> allocated = new List<Object>();
@@ -20,6 +23,8 @@ namespace Vivhite
         private readonly HashSet<SkeletonAnimation> animatedHeads = new HashSet<SkeletonAnimation>();
         private readonly Texture2D frontHead;
         private readonly Texture2D backHead;
+        private readonly Texture2D frontCape;
+        private readonly Texture2D backCape;
 
         internal Sprite Avatar { get; }
         internal Sprite Portrait { get; }
@@ -32,6 +37,8 @@ namespace Vivhite
                 Portrait = ReadSprite(folder, "portrait.png");
                 frontHead = ReadTexture(folder, "head-front.png");
                 backHead = ReadTexture(folder, "head-back.png");
+                frontCape = ReadTexture(folder, "cape-front.png");
+                backCape = ReadTexture(folder, "cape-back.png");
             }
             catch
             {
@@ -79,48 +86,73 @@ namespace Vivhite
             setup.SetSkin(template);
             setup.SetSlotsToSetupPose();
             setup.UpdateWorldTransform(Skeleton.Physics.Pose);
-            Slot face = setup.FindSlot("F_Head");
-            if (!(face?.Attachment is MeshAttachment faceMesh))
+            Slot face = setup.FindSlot(FaceSlot);
+            Slot hair = setup.FindSlot(HairSlot);
+            if (!(face?.Attachment is MeshAttachment faceMesh) || !(hair?.Attachment is MeshAttachment hairMesh) ||
+                !(faceMesh.Region is AtlasRegion stockFace) || !(hairMesh.Region is AtlasRegion stockHair))
                 return StockHead;
             Rect faceBounds = MeshBounds(face, faceMesh);
-
+            float crown = MeshBounds(hair, hairMesh).yMax;
             var head = new Skin(CustomHead);
             head.AddSkin(template);
-            AtlasRegion frontRegion = null;
-            AtlasRegion backRegion = null;
+            AtlasRegion frontRegion = MakeRegion(frontHead, stockFace);
+            AtlasRegion backRegion = MakeRegion(backHead, stockHair);
             foreach (Skin.SkinEntry entry in template.Attachments)
             {
-                if (!(entry.Attachment is MeshAttachment mesh) || !(mesh.Region is AtlasRegion original))
-                    continue;
-                Slot slot = setup.Slots.Items[entry.SlotIndex];
-                if (entry.Name == FrontSlot)
-                {
-                    frontRegion = MakeRegion(frontHead, original);
-                    head.SetAttachment(entry.SlotIndex, entry.Name, MakeHead(slot, mesh, faceBounds, frontRegion));
-                }
+                RegionAttachment replacement;
+                if (entry.Name == FaceSlot)
+                    replacement = MakeHead(face, faceBounds, crown, frontRegion);
                 else if (entry.Name == BackAttachment)
+                    replacement = MakeHead(hair, faceBounds, crown, backRegion);
+                else
                 {
-                    backRegion = MakeRegion(backHead, original);
-                    head.SetAttachment(entry.SlotIndex, entry.Name, MakeHead(slot, mesh, faceBounds, backRegion));
+                    replacement = new RegionAttachment(entry.Name) { Region = frontRegion };
+                    replacement.UpdateRegion();
                 }
+                head.SetAttachment(entry.SlotIndex, entry.Name, replacement);
             }
+            AddSkin(data, head);
+            return CustomHead;
+        }
 
-            if (frontRegion == null || backRegion == null)
-                return StockHead;
+        internal string GetCapeSkin(Skeleton skeleton)
+        {
+            var data = skeleton?.Data;
+            if (data == null)
+                return StockCape;
+            if (data.FindSkin(CustomCape) != null)
+                return CustomCape;
+            Skin template = data.FindSkin(StockCape);
+            if (template == null)
+                return StockCape;
 
+            var setup = new Skeleton(data);
+            setup.SetSkin(template);
+            setup.SetSlotsToSetupPose();
+            setup.UpdateWorldTransform(Skeleton.Physics.Pose);
+            var cape = new Skin(CustomCape);
+            cape.AddSkin(template);
             foreach (Skin.SkinEntry entry in template.Attachments)
             {
-                if (entry.Name == FrontSlot || entry.Name == BackAttachment)
+                Slot slot = setup.Slots.Items[entry.SlotIndex];
+                if (slot.Data.Name != "YiFu" || !(entry.Attachment is MeshAttachment mesh) || !(mesh.Region is AtlasRegion original))
                     continue;
-                // Replace the stock hair, face and eye meshes with empty geometry.
-                // The two new attachments carry the complete head and use the native draw order.
-                var empty = new RegionAttachment(entry.Name) { Region = frontRegion };
-                empty.UpdateRegion();
-                head.SetAttachment(entry.SlotIndex, entry.Name, empty);
+                bool rear = entry.Name.EndsWith("_B", StringComparison.Ordinal);
+                AtlasRegion region = MakeRegion(rear ? backCape : frontCape, original);
+                Rect bounds = MeshBounds(slot, mesh);
+                float width = bounds.width * 1.10f;
+                float height = bounds.height * 1.12f;
+                cape.SetAttachment(entry.SlotIndex, entry.Name,
+                    Attach(slot.Bone, entry.Name, region, bounds.center.x, bounds.yMin + height * 0.5f, width, height));
             }
-            data.Skins.Add(head);
-            installedSkins.Add((data, head));
-            return CustomHead;
+            AddSkin(data, cape);
+            return CustomCape;
+        }
+
+        private void AddSkin(SkeletonData data, Skin skin)
+        {
+            data.Skins.Add(skin);
+            installedSkins.Add((data, skin));
         }
 
         internal void BindDirection(SkeletonAnimation animation)
@@ -136,16 +168,21 @@ namespace Vivhite
         private static void ApplyDirection(ISkeletonAnimation animation)
         {
             Skeleton skeleton = animation.Skeleton;
-            Slot head = skeleton?.FindSlot(FrontSlot);
-            if (head?.Attachment == null)
+            Slot face = skeleton?.FindSlot(FaceSlot);
+            Slot hair = skeleton?.FindSlot(HairSlot);
+            if (face == null || hair == null)
                 return;
 
-            // North-facing clips swap the stock hair overlay while leaving the same base head key.
-            // Use that marker after Spine has applied the animation timelines.
+            // Use the rig's direction marker. The face sits in front of collars, while back hair
+            // remains in the stock rear layer so cloaks and equipped chest pieces can overlap it.
             bool facingBack = skeleton.FindSlot(DirectionSlot)?.Attachment?.Name == "B_Hair05";
-            Attachment replacement = skeleton.Skin?.GetAttachment(head.Data.Index, facingBack ? BackAttachment : FrontSlot);
-            if (replacement != null && replacement != head.Attachment)
-                head.Attachment = replacement;
+            Attachment visibleFace = skeleton.Skin?.GetAttachment(face.Data.Index, FaceSlot);
+            Attachment visibleHair = skeleton.Skin?.GetAttachment(hair.Data.Index, facingBack ? BackAttachment : HairSlot);
+            if (visibleFace is RegionAttachment && visibleHair is RegionAttachment)
+            {
+                face.Attachment = facingBack ? null : visibleFace;
+                hair.Attachment = visibleHair;
+            }
         }
 
         private AtlasRegion MakeRegion(Texture2D texture, AtlasRegion original)
@@ -191,15 +228,19 @@ namespace Vivhite
             return Rect.MinMaxRect(left, bottom, right, top);
         }
 
-        private static RegionAttachment MakeHead(Slot slot, MeshAttachment template, Rect faceBounds, AtlasRegion region)
+        private static RegionAttachment MakeHead(Slot slot, Rect faceBounds, float crown, AtlasRegion region)
         {
-            // Keep the compact bob above the native collar and align its crown to the stock rig.
-            float bottom = faceBounds.yMin + faceBounds.height * 0.08f;
-            float height = MeshBounds(slot, template).yMax - bottom;
+            float bottom = faceBounds.yMin + faceBounds.height * 0.02f;
+            float height = crown - bottom;
             float width = height * region.width / region.height;
-            Bone bone = slot.Bone;
-            bone.WorldToLocal(faceBounds.center.x, bottom + height * 0.5f, out float x, out float y);
-            var replacement = new RegionAttachment(template.Name)
+            return Attach(slot.Bone, slot.Data.Name, region, faceBounds.center.x, bottom + height * 0.5f, width, height);
+        }
+
+        private static RegionAttachment Attach(Bone bone, string name, AtlasRegion region, float centerX, float centerY,
+            float width, float height)
+        {
+            bone.WorldToLocal(centerX, centerY, out float x, out float y);
+            var replacement = new RegionAttachment(name)
             {
                 Region = region,
                 X = x,

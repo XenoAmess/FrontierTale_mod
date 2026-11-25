@@ -3,8 +3,9 @@
 白绮（Vivhite）是独立随从，性格 INTJ。启用模组并进入领地后，可在原版村民面板以 0 金币招募，再设为跟随。与她交谈时会显示台词「……麻烦死了」。
 
 - 基础战斗属性沿用米娅的数据，装备加成由原版随从系统计算。
-- 招募时装备栏是空的。给白绮装备武器、防具或饰品，操作与原版装备栏一致。没有可用武器时，她会跟随但不会用默认武器攻击。
-- 白绮使用弓、弩、枪时无需准备弹药。使用暗夜法杖等施法武器时，攻击仍会扣白绮的魔力值。
+- 招募时装备栏是空的。白绮有主、副两个武器槽，防具和饰品仍使用原版槽位。没有可用武器时，她会跟随。
+- 两把武器都能打到同一目标且冷却完毕时，会在同一轮出手。每把武器各自结算射程、冷却和耐久。只有一把可用时，仍可单独攻击。
+- 白绮使用弓、弩、枪时无需弹药。她使用暗夜法杖等施法武器时消耗 0 点魔力，魔力为零也能施法。
 - 白绮存活并跟随时，主角受到致命伤害，她会牺牲自己，将剩余生命交给主角，回血受主角最大生命值限制。白绮通过原版随从复活流程恢复。
 
 ## 安装
@@ -14,8 +15,8 @@
 ## 给白绮装备
 
 1. 让白绮成为「当前随从」。
-2. 打开顶部的「仓库」。在背包区点击主角装备页签旁边的随从装备按钮，切到她的八格装备栏。
-3. 把背包或仓库里的装备拖进对应的武器、衣服、鞋子、手套或饰品槽。取下时拖回背包。
+2. 打开顶部的「仓库」。在背包区点击主角装备页签旁边的随从装备按钮，切到白绮的装备栏。
+3. 顶部「武器」里左边是主手，右边是副手。可以从背包或仓库拖入装备，取下时拖回背包。旧档现有武器留在主手，副手起始为空。
 
 ## 构建
 
@@ -27,7 +28,7 @@ dotnet build mod_vivhite/Source/Vivhite.csproj -c Release '-p:GameDir=Z:/SteamLi
 
 ## 美术素材
 
-使用内置 imagegen，以白绮的角色参考图、Delta Live2D 和原版角色美术为参考生成对话立绘和正、背面地图头部贴图。头像按原版角色方格的近景比例从立绘裁切。地图贴图按实测的原版地图角色比例重画，并沿用原版 Spine 骨骼、动作和装备外观。空装备栏时显示斗篷、缠手和靴子作为外观。所有运行时素材在 [`vivhite/`](vivhite/) 内。
+使用内置 imagegen，以白绮的角色参考图、Delta Live2D 和原版角色美术为参考生成对话立绘、地图头部和默认斗篷。地图角色沿用原版 Spine 骨骼和动作。正面脸部采用原版面部图层，背面头发采用原版后方图层。更换衣服时显示装备对应的款式。所有运行时素材在 [`vivhite/`](vivhite/) 内。
 
 <details>
 <summary>ImageGen 提示词</summary>
@@ -48,6 +49,12 @@ Use case: stylized-concept. Asset type: the isolated FRONT HEAD texture of Vivhi
 
 ~~~~
 Use case: stylized-concept. Asset type: the isolated BACK HEAD texture for the same gameplay sprite. The first reference is the finalized new FRONT sprite of Vivhite; redraw that exact sprite from the rear, rotated 180 degrees around a vertical axis. The second reference shows the rear texture line and shape treatment of the existing Frontier Tale game actors. Need the same squat compact helmet-like icy silver bob, the same crown notch, the same exact overall dimensions and silhouette, including two small black cloth knots with gold edges attached flush to her hair. No face, skin, ears, neck, clothing or hands; only the silhouette of the back of hair and ribbons. Use the same very thick simplified charcoal contour, main pale cream-silver hair area, cold lavender tidy tapering bottom shadows, a short broad highlight broken by a couple of tufts, a small number of thick interior lines. Crop frame centered with ample transparent border and true alpha. No shadows outside the shape, no extras, no labels. Should pair seamlessly with the front asset when a game sprite turns.
+~~~~
+
+地图斗篷
+
+~~~~
+Use case: stylized-concept. Asset type: a transparent sprite sheet of two separate tiny torso parts for Frontier Tale's native map character skeleton. Reference 1 is the game's real front and back gameplay character graphics; use their strong charcoal outlines and very low-detail colored shapes. Reference 2 is Vivhite's existing dialogue portrait; adapt its cape color and silhouette. Draw TWO SEPARATE stand-alone images spaced widely left and right on the same transparent canvas: front torso (left) and exactly same size back torso (right). They should each be wide and short, aspect ratio 1.38 width:1 height, and precisely share identical balanced shoulder width, small narrow neckline, and the same height. Each is just shoulder-to-waist upper body with matte dark charcoal-violet short shoulder cape, bold small antique-brass trim, creamy upright inner collar, and at the front one simple tiny clasp. The collar comes all the way up to the bottom of the invisible chin, so its top has a shallow concave neckline and there is absolutely no exposed skin, beige patch, floating neck or protruding neck on either half. Cross section rear has a simple line of trim at the cape hem and no front clasp. Simplified chibi map sprite, clear strong thick charcoal line and flat 2-tone cloth shading, readable when the torso is 50 px tall. Use contained sleeve suggestions in the silhouette only; separate fists and boots will come from game rig, so no actual hands, cuffs, extended sleeves, head, hair, arms, legs, feet, skirt, wand, background, shadows, surrounding shapes, labels, or lettering. Isolated real transparent alpha, left front and right back side by side, evenly aligned, do not touch.
 ~~~~
 
 </details>

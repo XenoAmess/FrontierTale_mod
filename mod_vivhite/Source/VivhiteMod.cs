@@ -163,13 +163,15 @@ namespace Vivhite
                 RegionManager.instance.mainUI == null || !CharacterCore.IsActive() || CharacterCore.Instance.c_ctrl == null)
                 return;
 
-            if (!save.customHomeData.totalVilligers.Values.Any(data => data?.npcID == NpcId))
+            VillagerData candidate = save.customHomeData.totalVilligers.Values.FirstOrDefault(DualWeapons.IsVivhite);
+            if (candidate == null)
             {
                 // The native constructor allocates independent, empty equipment slots in the save.
-                VillagerData candidate = manager.InitAccompanyData(DataAsset).GetAwaiter().GetResult();
+                candidate = manager.InitAccompanyData(DataAsset).GetAwaiter().GetResult();
                 candidate.employeeType = EnumConfig.EmployeeType.Unhired;
                 NPCDailyDialogueManager.Instance.RecordRecruitment(candidate);
             }
+            DualWeapons.EnsureSlots(candidate);
             seenSave = save;
         }
 
