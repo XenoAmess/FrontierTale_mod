@@ -11,6 +11,7 @@ namespace QuickChestLoot
 {
     public sealed class QuickChestLootMod : GameMod
     {
+        private const double InitialPickupDelay = 0.7;
         private const double PickupInterval = 0.35;
         private const int CoinType = 7;
         private const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
@@ -77,7 +78,7 @@ namespace QuickChestLoot
             {
                 activeChest = chest;
                 finished = false;
-                nextPickupTime = 0;
+                nextPickupTime = Time.unscaledTimeAsDouble + InitialPickupDelay;
                 SkipSearch(chest);
             }
 
