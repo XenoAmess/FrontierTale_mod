@@ -4,12 +4,18 @@
 
 - 基础战斗属性沿用米娅的数据，装备加成由原版随从系统计算。
 - 招募时装备栏是空的。给白绮装备武器、防具或饰品，操作与原版装备栏一致。没有可用武器时，她会跟随但不会用默认武器攻击。
-- 白绮持有的弓、弩和枪使用无限弹药。法杖沿用原有的魔力消耗。
+- 白绮使用弓、弩、枪时无需准备弹药。使用暗夜法杖等施法武器时，攻击仍会扣白绮的魔力值。
 - 白绮存活并跟随时，主角受到致命伤害，她会牺牲自己，将剩余生命交给主角，回血受主角最大生命值限制。白绮通过原版随从复活流程恢复。
 
 ## 安装
 
-适用于《开拓物语》Windows Mono 2.2.0（Steam 构建 26889260）。把 `vivhite` 放到 `FrontierTale_Data/Mods`，在主菜单的「模组 → 本地模组」启用后重启游戏。保存过白绮的存档需要启用本模组加载角色及其装备。
+适用于《开拓物语》Windows Mono 2.2.0（Steam 构建 26889260）。把 `vivhite` 放到 `FrontierTale_Data/Mods`，在主菜单的「模组 → 本地模组」启用后重启游戏。更新时覆盖同一个目录并重启。旧存档可以直接继续。读档时如果出现模组差异页面，确认白绮已加载，然后点击「继续」进入领地。在顶部「角色」列表找到白绮，点击底部按钮，0 金币招募后再点击「跟随」。保存过白绮的存档需要启用本模组加载她及其装备。
+
+## 给白绮装备
+
+1. 让白绮成为「当前随从」。
+2. 打开顶部的「仓库」。在背包区点击主角装备页签旁边的随从装备按钮，切到她的八格装备栏。
+3. 把背包或仓库里的装备拖进对应的武器、衣服、鞋子、手套或饰品槽。取下时拖回背包。
 
 ## 构建
 
@@ -21,7 +27,7 @@ dotnet build mod_vivhite/Source/Vivhite.csproj -c Release '-p:GameDir=Z:/SteamLi
 
 ## 美术素材
 
-使用内置 imagegen，以白绮的角色参考图、Delta Live2D 和原版角色美术为参考生成对话立绘和正、背面地图头部贴图。头像和预览图从立绘裁切。地图角色沿用原版 Spine 骨骼和动作，装备后会使用对应的原版换装外观。所有运行时素材在 [`vivhite/`](vivhite/) 内。
+使用内置 imagegen，以白绮的角色参考图、Delta Live2D 和原版角色美术为参考生成对话立绘和正、背面地图头部贴图。头像按原版角色方格的近景比例从立绘裁切。地图贴图按实测的原版地图角色比例重画，并沿用原版 Spine 骨骼、动作和装备外观。空装备栏时显示斗篷、缠手和靴子作为外观。所有运行时素材在 [`vivhite/`](vivhite/) 内。
 
 <details>
 <summary>ImageGen 提示词</summary>
@@ -34,14 +40,14 @@ Use case: stylized-concept. Asset type: finished Frontier Tale custom follower d
 
 地图正面
 
-```
-Use case: stylized-concept. Asset type: isolated FACE-SIDE head sprite for the Frontier Tale shared Spine game rig. Create a game-ready isolated head cutout of Vivhite, the same character as image 3, a finalized dialogue portrait. Image 1 shows actual stock Frontier Tale game-rig head texture shapes and their strong clean flat-vector outlines and graphic shading: reference the graphic style only. Image 2 is the character design/live rig reference: preserve her recognizable icy-silver blue bob with a heavy angular central fringe and two big dark navy hair ribbons trimmed muted gold, vivid magenta eyes, warm brass round glasses. Match the same quiet mildly annoyed intelligent expression in image 3. Show only the compact rounded oversized chibi head from its crown down to the chin, directly facing toward the screen with very slight three-quarter asymmetry, essentially the same near-front view as image 2. All hair ends near the chin. Both ribbons fully visible and tucked behind the temples. Use a bold charcoal exterior outline, very limited 2 to 3 blocks of cold blue shadow, one creamy swoosh of hair highlight, clearly readable magenta eyes and circular glasses at 75 px in-game. No photographic textures, no gradients. No neck, no clothing, no hand, no shoulders, no torso, no props, no detached sprite pieces, no badge frame or text. Top, ribbons, and chin all uncut, leave an even clear margin around the single piece. Real transparent background and alpha.
-```
+~~~~
+Use case: stylized-concept. Asset type: the isolated FRONT HEAD texture of Vivhite for Frontier Tale's gameplay sprite. Reference 1 is actual front and back views of the game's other map characters; especially match the red-haired character's compact head silhouette, oval face, very thick dark exterior ink, simple two-tone hard block colors and sparse interior detail. Reference 2 is Vivhite's original Live2D identity. Reference 3 is her new dialogue portrait, for identity and colors only. Make an entirely new gameplay head, straight-on with crown fully visible, explicitly more compact than the dialogue art. Tiny stylized light-silver short tapered bob, wider near the cheeks and rounded jaw. Choppy fringe cut above the large pink eyes so they read as one unit. Simple small round muted bronze spectacles integrated over the pink eyes, nearly black arcing top lash, simple single iris highlight, pale warm cream face. Keep her two tiny black-gold ribbon knots tucked into the hair profile just above the ears, protruding on each side by at most 4 percent of total head width. Use simplified large shapes and recognizable angry-neutral face. At game scale the art should look like the Frontier Tale reference and be clear at 70 pixels high. Use a thick soft-cornered charcoal outer line, thick but clean brow and hair edge, limited mid-gray-lavender cel-shadow under bangs, pale ivory highlight. Hide no part of her face below the glasses; leave chin distinctly defined and enough room for one extremely small mouth if necessary. Only crown, hair, face, and little ribbons; no neck, no shoulders, hands, clothing, props, text, or outline glow. Center one head on a square canvas with generous transparent margins, true alpha background. The cropped head silhouette should be close to round, around 1.1 width to 1 height.
+~~~~
 
 地图背面
 
-```
-Use case: stylized-concept. Asset type: isolated BACK-SIDE head sprite for the Frontier Tale shared Spine game rig. This sheet must pair exactly with reference image 1, the approved Vivhite front head. Imagine rotating that head a full 180 degrees to show the back of the exact same head; it is viewed straight from behind with crown up. Match the same proportions, outer outline, overall width:height and hair length, enough to replace the face-side game sprite on turn. Keep both gold-trimmed black/navy ribbons at the same temple height and size, and the icy silver blue compact angular bob. Show the hair seen from the back with the part at crown, tapered layers, a bottom full mass of hair, and strong clean dark charcoal contour. Only the back of the head is visible, with no sliver of face, no eyes, no glasses, no skin, no ears. Match asset style: striking deep charcoal outlines, graphic cel color blocks and a pale icy blue-white highlight. No neck, torso, collar, props, lettering, decorative background, or drop shadow. Use truly transparent background. Only one single head silhouette, with the crown and both ribbons entirely within canvas and an even clear margin; overall aligned centered exactly like the front view.
-```
+~~~~
+Use case: stylized-concept. Asset type: the isolated BACK HEAD texture for the same gameplay sprite. The first reference is the finalized new FRONT sprite of Vivhite; redraw that exact sprite from the rear, rotated 180 degrees around a vertical axis. The second reference shows the rear texture line and shape treatment of the existing Frontier Tale game actors. Need the same squat compact helmet-like icy silver bob, the same crown notch, the same exact overall dimensions and silhouette, including two small black cloth knots with gold edges attached flush to her hair. No face, skin, ears, neck, clothing or hands; only the silhouette of the back of hair and ribbons. Use the same very thick simplified charcoal contour, main pale cream-silver hair area, cold lavender tidy tapering bottom shadows, a short broad highlight broken by a couple of tufts, a small number of thick interior lines. Crop frame centered with ample transparent border and true alpha. No shadows outside the shape, no extras, no labels. Should pair seamlessly with the front asset when a game sprite turns.
+~~~~
 
 </details>

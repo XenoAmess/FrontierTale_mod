@@ -119,10 +119,17 @@ namespace Vivhite
                 art.BindDirection(___skeletonAnimation);
         }
 
-        private static void RegisterHeadSkin(Skeleton skeleton, ref string headSkin)
+        private static void RegisterHeadSkin(Skeleton skeleton, ref string headSkin, ref string handSkin, ref string legSkin)
         {
-            if (headSkin == "Head/" + VivhiteMod.HeadSkin)
-                headSkin = art.GetHeadSkin(skeleton);
+            if (headSkin != "Head/" + VivhiteMod.HeadSkin)
+                return;
+
+            headSkin = art.GetHeadSkin(skeleton);
+            // These native rig skins dress the empty slots. Equipment continues to supply its own skin.
+            if (handSkin == "Hand/Hand_00")
+                handSkin = "Hand/Hand_MaBuChanShou";
+            if (legSkin == "Leg/Leg_00")
+                legSkin = "Leg/Leg_LvZheChangXue";
         }
 
         private static bool Localize(LocalizationManager __instance, string key, ref string __result)

@@ -193,8 +193,8 @@ namespace Vivhite
 
         private static RegionAttachment MakeHead(Slot slot, MeshAttachment template, Rect faceBounds, AtlasRegion region)
         {
-            // The stock hair extends to the feet. Fit the bob between its crown and the native jaw.
-            float bottom = faceBounds.yMin - faceBounds.height * 0.12f;
+            // Keep the compact bob above the native collar and align its crown to the stock rig.
+            float bottom = faceBounds.yMin + faceBounds.height * 0.08f;
             float height = MeshBounds(slot, template).yMax - bottom;
             float width = height * region.width / region.height;
             Bone bone = slot.Bone;
