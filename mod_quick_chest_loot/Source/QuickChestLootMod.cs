@@ -18,7 +18,13 @@ namespace QuickChestLoot
 
         private FieldInfo searchCoroutine;
         private FieldInfo pickSlots;
+        private FieldInfo unlockReady;
+        private FieldInfo unlockSuccessAction;
+        private FieldInfo unlockAnimation;
         private Action<WildBagUI> completeSearch;
+        private Action<WildBagUI> closeChest;
+        private Action<UnlockingUI> completeUnlock;
+        private Action<UnlockingUI> resetUnlockVisuals;
         private Func<WildBagUI, BagItem, bool> takeItem;
         private Func<WildBagUI, bool> itemInteractionBlocked;
         private Action showBagFullWarning;
@@ -31,9 +37,15 @@ namespace QuickChestLoot
 
         public override void Load(ModContext context)
         {
-            searchCoroutine = GetField<Coroutine>("pickSearchCoroutine");
-            pickSlots = GetField<List<BagItem>>("totalPickItems");
+            searchCoroutine = GetField(typeof(WildBagUI), "pickSearchCoroutine", typeof(Coroutine));
+            pickSlots = GetField(typeof(WildBagUI), "totalPickItems", typeof(List<BagItem>));
+            unlockReady = GetField(typeof(UICanvas), "clickMask", typeof(Action));
+            unlockSuccessAction = GetField(typeof(UnlockingUI), "successAction", typeof(Action));
+            unlockAnimation = GetField(typeof(UnlockingUI), "actionSequence");
             completeSearch = Bind<Action<WildBagUI>>(typeof(WildBagUI), "CompletePickSearchImmediately");
+            closeChest = Bind<Action<WildBagUI>>(typeof(WildBagUI), "ClosePanel");
+            completeUnlock = Bind<Action<UnlockingUI>>(typeof(UnlockingUI), "CompleteUnlockSuccess");
+            resetUnlockVisuals = Bind<Action<UnlockingUI>>(typeof(UnlockingUI), "ResetVisualState");
             takeItem = Bind<Func<WildBagUI, BagItem, bool>>(typeof(WildBagUI), "TakeCurrentPickItem", typeof(BagItem));
             itemInteractionBlocked = Bind<Func<WildBagUI, bool>>(typeof(WildBagUI), "get_IsItemInfoBlocked");
             MethodInfo warning = typeof(WildBagUI).GetMethod("ShowBagFullWarning", BindingFlags.Static | BindingFlags.NonPublic)
@@ -56,8 +68,29 @@ namespace QuickChestLoot
 
         private void RevealBeforeRender()
         {
-            if (UIManager.IsActive() && UIManager.Instance.GetTopUICanvas() is WildBagUI chest)
+            if (!UIManager.IsActive())
+                return;
+
+            var ui = UIManager.Instance;
+            TryAutoUnlock(ui);
+            if (ui.GetTopUICanvas() is WildBagUI chest)
                 SkipSearch(chest);
+        }
+
+        private void TryAutoUnlock(UIManager ui)
+        {
+            if (!(ui.GetTopUICanvas() is UnlockingUI unlocking) || unlocking == null ||
+                !unlocking.isActiveAndEnabled || ui.GetActiveInputTopCanvas() != null ||
+                unlockReady.GetValue(unlocking) == null ||
+                !(unlockSuccessAction.GetValue(unlocking) is Action success) ||
+                !(success.Target is MapWildBag chest) || chest == null)
+                return;
+
+            // CreateUI assigns clickMask after initialization. Stop an existing tween before
+            // the native success method clears its reference and closes the lock UI.
+            if (unlockAnimation.GetValue(unlocking) != null)
+                resetUnlockVisuals(unlocking);
+            completeUnlock(unlocking);
         }
 
         private void SkipSearch(WildBagUI chest)
@@ -70,8 +103,12 @@ namespace QuickChestLoot
 
         public override void OnFrame()
         {
-            if (!UIManager.IsActive() || !(UIManager.Instance.GetTopUICanvas() is WildBagUI chest) ||
-                chest == null || !chest.isActiveAndEnabled)
+            if (!UIManager.IsActive())
+                return;
+
+            var ui = UIManager.Instance;
+            TryAutoUnlock(ui);
+            if (!(ui.GetTopUICanvas() is WildBagUI chest) || chest == null || !chest.isActiveAndEnabled)
                 return;
 
             var slots = (List<BagItem>)pickSlots.GetValue(chest);
@@ -87,20 +124,27 @@ namespace QuickChestLoot
                 SkipSearch(chest);
             }
 
-            if (finished || Time.unscaledTimeAsDouble < nextPickupTime || !Application.isFocused ||
-                UIManager.Instance.GetActiveInputTopCanvas() != null || !UserDataManager.IsActive())
+            if (!Application.isFocused || ui.GetActiveInputTopCanvas() != null || !UserDataManager.IsActive())
                 return;
 
             InputManager input = InputManager.Instance;
             if (input == null || !input.interactable || input.IsRebinding || itemInteractionBlocked(chest))
                 return;
 
+            if (!slots.Exists(slot => HasLoot(slot)))
+            {
+                closeChest(chest);
+                return;
+            }
+
+            if (finished || Time.unscaledTimeAsDouble < nextPickupTime)
+                return;
+
             var inventory = UserDataManager.Instance;
             bool hasUnfittingItem = false;
             foreach (BagItem slot in slots)
             {
-                if (slot == null || slot.data == null || slot.data.dataID == 0 || slot.data.configID == 0 ||
-                    slot.data.num <= 0 || slot.data.isLock)
+                if (!HasLoot(slot) || slot.data.isLock)
                     continue;
 
                 CommonData item = slot.data;
@@ -122,11 +166,17 @@ namespace QuickChestLoot
                 showBagFullWarning();
         }
 
-        private static FieldInfo GetField<T>(string name)
+        private static bool HasLoot(BagItem slot)
         {
-            FieldInfo field = typeof(WildBagUI).GetField(name, PrivateInstance);
-            if (field?.FieldType != typeof(T))
-                throw new MissingFieldException(typeof(WildBagUI).FullName, name);
+            return slot != null && slot.data is CommonData item &&
+                item.dataID != 0 && item.configID != 0 && item.num > 0;
+        }
+
+        private static FieldInfo GetField(Type owner, string name, Type fieldType = null)
+        {
+            FieldInfo field = owner.GetField(name, PrivateInstance);
+            if (field == null || (fieldType != null && field.FieldType != fieldType))
+                throw new MissingFieldException(owner.FullName, name);
             return field;
         }
 
