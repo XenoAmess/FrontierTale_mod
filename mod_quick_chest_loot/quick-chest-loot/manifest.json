@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "type": "code",
+  "sdkVersion": 1,
+  "id": "xenoamess.quick-chest-loot",
+  "title": "开箱自动拾取",
+  "version": "1.0.0",
+  "description": "打开野外战利品箱后立即显示内容，自动逐格拾取，每次间隔 0.35 秒。箱子空了、背包放不下剩余物品或关箱时停止。",
+  "assembly": "QuickChestLoot.dll",
+  "entryType": "QuickChestLoot.QuickChestLootMod"
+}
