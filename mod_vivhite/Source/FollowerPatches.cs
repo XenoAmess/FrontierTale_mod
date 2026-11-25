@@ -35,6 +35,12 @@ namespace Vivhite
                 typeof(System.Threading.CancellationToken));
             Prefix(typeof(MapVillager), "GetAttackBlockReason", nameof(RequireEquippedWeapon));
             Prefix(typeof(MapVillager), "ShouldIgnoreArrowAmmo", nameof(UseInfiniteAmmunition), typeof(WeaponConfig));
+            Prefix(typeof(CharacterAttributeSystem), nameof(CharacterAttributeSystem.GetFinalLifeStealAccompany),
+                nameof(RestoreLifeSteal), typeof(float));
+            Prefix(typeof(UserDataManager), nameof(UserDataManager.ConsumeWeaponDurability), nameof(PreventWeaponWear),
+                typeof(WeaponDurabilityOwnerType), typeof(ulong), typeof(ulong), typeof(float));
+            Prefix(typeof(VillagerModelCtrl), "PlayHoldWeaponAni", nameof(SkipMissingHoldAnimation),
+                typeof(bool), typeof(bool), typeof(int));
             Prefix(typeof(CharacterVitals), "HandleHealthStateChange", nameof(InterceptPlayerDeath), typeof(EnumConfig.HealthState));
             harmony.Patch(Method(typeof(CharacterSkin), "ApplyVillagerSkin",
                     typeof(VillagerData), typeof(VillagerObject), typeof(bool), typeof(bool), typeof(string)),
@@ -92,6 +98,51 @@ namespace Vivhite
                 return true;
             __result = true;
             return false;
+        }
+
+        private static bool RestoreLifeSteal(CharacterAttributeSystem __instance, float damage)
+        {
+            MapVillager follower = CharacterCore.IsActive() ? CharacterCore.Instance.c_ctrl?.accompany : null;
+            if (follower == null || !IsVivhite(follower.data) || follower.GetAttributeSystem() != __instance)
+                return true;
+            if (!follower.IsAlive || !(damage > 0f) || float.IsInfinity(damage))
+                return false;
+
+            float rate = Mathf.Max(0f, follower.GetConfig().leechValue +
+                __instance.GetValue(EnumConfig.AdjustAttributeType.LifeSteal));
+            int amount = Mathf.RoundToInt(damage * rate / 100f);
+            float previousHp = follower.hp;
+            follower.AdjustHp(amount);
+            if (follower.hp >= follower.total_maxHp)
+            {
+                float overflow = Mathf.Max(0f, amount - (follower.hp - previousHp));
+                follower.Shield?.RestoreFlat(overflow, EnumConfig.HealthRestoreSource.LifeSteal);
+            }
+            return false;
+        }
+
+        private static bool PreventWeaponWear(UserDataManager __instance, WeaponDurabilityOwnerType ownerType,
+            ulong ownerDataId, ulong weaponDataId, ref bool __result)
+        {
+            var villagers = __instance.userData?.customHomeData?.totalVilligers;
+            if (ownerType != WeaponDurabilityOwnerType.Accompany || weaponDataId == 0 ||
+                villagers == null || !villagers.TryGetValue(ownerDataId, out VillagerData owner) || !IsVivhite(owner))
+                return true;
+
+            // Finish the native per-hit durability transaction without applying any wear.
+            __result = true;
+            return false;
+        }
+
+        private static void SkipMissingHoldAnimation(VillagerModelCtrl __instance, bool playToNorth,
+            ref bool showWeaponHold, int weaponNum)
+        {
+            if (!showWeaponHold || weaponNum <= 0)
+                return;
+            string clip = playToNorth ? $"hold_WQ{weaponNum}_BS" : $"hold_WQ{weaponNum}_FS";
+            if (__instance.FindAnimation(clip) == null &&
+                IsVivhite(__instance.GetSkeletonAnimation()?.GetComponentInParent<MapVillager>()?.data))
+                showWeaponHold = false;
         }
 
         private static bool InterceptPlayerDeath(CharacterVitals __instance, EnumConfig.HealthState state, CharacterCtrl ___ctrl)
@@ -158,8 +209,8 @@ namespace Vivhite
                     break;
                 case VivhiteMod.AbilityKey:
                     __result = english
-                        ? "Genius magical girl. Uses two equipped weapons together. No ammunition or mana is consumed when attacking. While following and alive, sacrifices herself on lethal damage and transfers her remaining HP to the player."
-                        : "超天才魔法少女。可同时使用两把武器，攻击不消耗弹药或魔力。跟随且存活时，主角受到致命伤害，白绮牺牲自己，将全部剩余生命转给主角。";
+                        ? "Genius magical girl. 50% base life steal restores HP first, then shield. 50 base luck. Can use both weapons at once without spending ammunition, mana, or durability. While following and alive, sacrifices herself when the player takes lethal damage and transfers her remaining HP."
+                        : "超天才魔法少女。基础吸血 50%，先回复生命，满血后溢出的吸血回复护盾。基础幸运 50。可同时使用两把武器，攻击不消耗弹药、魔力或武器耐久。跟随且存活时，可牺牲自己替主角承受致命伤，并转移剩余生命。";
                     break;
                 case VivhiteMod.QuoteKey:
                     __result = "……麻烦死了";

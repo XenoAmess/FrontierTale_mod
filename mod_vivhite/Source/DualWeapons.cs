@@ -90,8 +90,6 @@ namespace Vivhite
             harmony.Patch(AccessTools.Method(typeof(MapVillager), "EndAtkPreAni"), prefix: Patch(nameof(UseVolley)));
             harmony.Patch(AccessTools.Method(typeof(MapVillager), "IsOutOfResource", new[] { typeof(WeaponConfig), typeof(CommonData) }),
                 prefix: Patch(nameof(FreeStaffUse)));
-            harmony.Patch(AccessTools.Method(typeof(UserDataManager), nameof(UserDataManager.ConsumeWeaponDurability)),
-                transpiler: Patch(nameof(ResolveDurabilitySlot)));
             harmony.Patch(AccessTools.Method(typeof(WeaponConfig), "GetBaseDamageRange"),
                 transpiler: Patch(nameof(ResolveDamageSlot)));
             harmony.Patch(AccessTools.Method(typeof(WeaponConfig), nameof(WeaponConfig.GetNonCritDamageRange), new[] { typeof(MapVillager) }),
@@ -375,26 +373,16 @@ namespace Vivhite
             return null;
         }
 
-        private static CommonData DurabilityWeapon(VillagerData data, ulong weaponId)
-        {
-            if (IsVivhite(data) && data.equipDatas.Length > OffSlot && data.equipDatas[OffSlot]?.dataID == weaponId)
-                return data.equipDatas[OffSlot];
-            return data.equipDatas[MainSlot];
-        }
-
         private static IEnumerable<CodeInstruction> ActiveSlotAccess(IEnumerable<CodeInstruction> instructions) =>
-            RewriteSlot(instructions, nameof(ActiveWeapon), false);
-
-        private static IEnumerable<CodeInstruction> ResolveDurabilitySlot(IEnumerable<CodeInstruction> instructions) =>
-            RewriteSlot(instructions, nameof(DurabilityWeapon), true);
+            RewriteSlot(instructions, nameof(ActiveWeapon));
 
         private static CommonData DamageWeapon(VillagerData data) =>
             IsVivhite(data) && damageWeapon != null ? damageWeapon : ActiveWeapon(data);
 
         private static IEnumerable<CodeInstruction> ResolveDamageSlot(IEnumerable<CodeInstruction> instructions) =>
-            RewriteSlot(instructions, nameof(DamageWeapon), false);
+            RewriteSlot(instructions, nameof(DamageWeapon));
 
-        private static IEnumerable<CodeInstruction> RewriteSlot(IEnumerable<CodeInstruction> instructions, string replacement, bool needsId)
+        private static IEnumerable<CodeInstruction> RewriteSlot(IEnumerable<CodeInstruction> instructions, string replacement)
         {
             var body = instructions.ToList();
             int edits = 0;
@@ -405,15 +393,12 @@ namespace Vivhite
                     body[i + 1].opcode == OpCodes.Ldc_I4_0 && body[i + 2].opcode == OpCodes.Ldelem_Ref)
                 {
                     var invoke = new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(DualWeapons), replacement));
-                    var first = needsId ? new CodeInstruction(OpCodes.Ldarg_3) : invoke;
                     for (int j = i; j <= i + 2; j++)
                     {
-                        first.MoveLabelsFrom(body[j]);
-                        first.MoveBlocksFrom(body[j]);
+                        invoke.MoveLabelsFrom(body[j]);
+                        invoke.MoveBlocksFrom(body[j]);
                     }
-                    yield return first;
-                    if (needsId)
-                        yield return invoke;
+                    yield return invoke;
                     i += 2;
                     edits++;
                 }

@@ -32,6 +32,7 @@ namespace Vivhite
         private readonly List<(string table, ulong id)> registeredRows = new List<(string, ulong)>();
         private VillagerObject profile;
         private FollowerArt art;
+        private WindowIcon windowIcon;
         private UserData seenSave;
         private bool active;
 
@@ -43,6 +44,8 @@ namespace Vivhite
                 art = new FollowerArt(context.Folder);
                 RegisterCharacter();
                 InstallPatches();
+                windowIcon = WindowIcon.CreateForPlayer(context.Folder);
+                windowIcon?.Update();
                 active = true;
                 Debug.Log("[Vivhite] Loaded");
             }
@@ -103,6 +106,8 @@ namespace Vivhite
             profile.headSkin = HeadSkin;
             profile.clothingSkin = "Cloth_NvWuDouPeng";
             profile.freeArrowAmmo = true;
+            profile.leechValue = 50f;
+            profile.luckyValue = 50f;
             profile.buffID = 0;
             characterAssets.Add(DataAsset, profile);
 
@@ -153,7 +158,10 @@ namespace Vivhite
 
         public override void OnFrame()
         {
-            if (!active || !UserDataManager.IsActive())
+            if (!active)
+                return;
+            windowIcon?.Update();
+            if (!UserDataManager.IsActive())
                 return;
 
             UserDataManager manager = UserDataManager.Instance;
@@ -181,6 +189,8 @@ namespace Vivhite
                 RemovePatches();
             active = false;
             seenSave = null;
+            windowIcon?.Dispose();
+            windowIcon = null;
 
             foreach ((string table, ulong id) in registeredRows)
                 tables[table].Remove(id);
