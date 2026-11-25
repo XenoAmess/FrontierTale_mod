@@ -26,6 +26,9 @@ namespace Vivhite
         internal const string DescriptionKey = "xenoamess.vivhite.description";
         internal const string AbilityKey = "xenoamess.vivhite.ability";
         internal const string QuoteKey = "xenoamess.vivhite.quote";
+        internal const string AgeKey = "xenoamess.vivhite.age";
+        internal const string RaceKey = "xenoamess.vivhite.race";
+        internal const string SignKey = "xenoamess.vivhite.sign";
 
         private Dictionary<string, Dictionary<ulong, JObject>> tables;
         private Dictionary<string, VillagerObject> characterAssets;
@@ -122,9 +125,9 @@ namespace Vivhite
             extra["isEmployee"] = true;
             extra["price"] = 0;
             extra["defaultCloth"] = 0;
-            extra.Remove("raceKey");
-            extra.Remove("signKey");
-            extra["age"] = 0;
+            extra["raceKey"] = RaceKey;
+            extra["signKey"] = SignKey;
+            extra["age"] = 17;
             AddRow("NPCExtraConfig", ExtraId, extra);
 
             AddRow("NpcConfig", NpcId, new JObject

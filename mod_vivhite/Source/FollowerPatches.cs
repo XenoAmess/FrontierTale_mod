@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using HarmonyLib;
 using Spine;
 using Spine.Unity;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using V;
@@ -48,6 +49,8 @@ namespace Vivhite
             Prefix(typeof(CharacterSkin), nameof(CharacterSkin.ApplyCombinedSkin), nameof(RegisterHeadSkin),
                 typeof(Skeleton), typeof(string), typeof(string), typeof(string), typeof(string), typeof(string));
             Prefix(typeof(LocalizationManager), nameof(LocalizationManager.GetText), nameof(Localize), typeof(string));
+            harmony.Patch(Method(typeof(VillagerInfoUI), "ShowInfo", typeof(VillagerItem)),
+                postfix: PatchMethod(nameof(ShowVivhiteAge)));
             Prefix(typeof(LoadUtils), nameof(LoadUtils.LoadSprite), nameof(LoadAvatar), typeof(string), typeof(string));
             Prefix(typeof(LoadUtils), nameof(LoadUtils.LoadSpriteHaveCache), nameof(LoadAvatar), typeof(string), typeof(string));
             Prefix(typeof(DialogueUI), "SwitchSpriteSmoothly", nameof(ShowPortrait), typeof(Image), typeof(string), typeof(float));
@@ -196,6 +199,12 @@ namespace Vivhite
                 legSkin = "Leg/Leg_LvZheChangXue";
         }
 
+        private static void ShowVivhiteAge(VillagerItem item, TextMeshProUGUI ___text_ageValue)
+        {
+            if (IsVivhite(item?.data?.villagerData))
+                ___text_ageValue.text = LocalizationManager.Instance.GetText(VivhiteMod.AgeKey);
+        }
+
         private static bool Localize(LocalizationManager __instance, string key, ref string __result)
         {
             bool english = __instance.CurrentLanguage == GameLanguage.English;
@@ -214,6 +223,15 @@ namespace Vivhite
                     break;
                 case VivhiteMod.QuoteKey:
                     __result = "……麻烦死了";
+                    break;
+                case VivhiteMod.AgeKey:
+                    __result = english ? "Forever 17" : "永远的17岁";
+                    break;
+                case VivhiteMod.RaceKey:
+                    __result = english ? "Magical Girl" : "魔法少女";
+                    break;
+                case VivhiteMod.SignKey:
+                    __result = english ? "Gemini" : "双子座";
                     break;
                 default:
                     return true;
