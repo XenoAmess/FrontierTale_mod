@@ -25,7 +25,7 @@ namespace QuickChestLoot
         private Func<UserDataManager, int, ulong, int> maxStackCount;
         private Func<UserDataManager, List<CommonData>, ulong, int, bool> hasReceiveSpace;
 
-        private WildBagUI activeChest;
+        private List<BagItem> activePickSlots;
         private bool finished;
         private double nextPickupTime;
 
@@ -51,7 +51,7 @@ namespace QuickChestLoot
         public override void Unload()
         {
             Canvas.preWillRenderCanvases -= RevealBeforeRender;
-            activeChest = null;
+            activePickSlots = null;
         }
 
         private void RevealBeforeRender()
@@ -74,9 +74,14 @@ namespace QuickChestLoot
                 chest == null || !chest.isActiveAndEnabled)
                 return;
 
-            if (activeChest != chest)
+            var slots = (List<BagItem>)pickSlots.GetValue(chest);
+            if (slots == null)
+                return;
+
+            // The canvas is pooled. WildBagUI creates a fresh slot list for each opening.
+            if (activePickSlots != slots)
             {
-                activeChest = chest;
+                activePickSlots = slots;
                 finished = false;
                 nextPickupTime = Time.unscaledTimeAsDouble + InitialPickupDelay;
                 SkipSearch(chest);
@@ -88,10 +93,6 @@ namespace QuickChestLoot
 
             InputManager input = InputManager.Instance;
             if (input == null || !input.interactable || input.IsRebinding || itemInteractionBlocked(chest))
-                return;
-
-            var slots = (List<BagItem>)pickSlots.GetValue(chest);
-            if (slots == null)
                 return;
 
             var inventory = UserDataManager.Instance;
