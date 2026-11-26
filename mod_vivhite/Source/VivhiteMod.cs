@@ -61,11 +61,8 @@ namespace Vivhite
 
         private static void LoadHarmony()
         {
-            if (AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "0Harmony"))
-                return;
-
             Assembly assembly = typeof(VivhiteMod).Assembly;
-            using (Stream resource = assembly.GetManifestResourceStream("Vivhite.0Harmony.dll")
+            using (Stream resource = assembly.GetManifestResourceStream("Vivhite.Harmony.dll")
                 ?? throw new InvalidDataException("Embedded Harmony assembly is missing."))
             using (var bytes = new MemoryStream())
             {

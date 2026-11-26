@@ -1,21 +1,50 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <Version>1.3.1</Version>
+    <Version>1.3.2</Version>
     <DebugType>none</DebugType>
     <GameAssemblies>$(GameDir)/FrontierTale_Data/Managed</GameAssemblies>
     <PackageDirectory>$(MSBuildThisFileDirectory)../vivhite</PackageDirectory>
+    <HarmonyInput>$(PkgLib_Harmony)/lib/net472/0Harmony.dll</HarmonyInput>
+    <HarmonyOutput>$(MSBuildProjectExtensionsPath)$(Configuration)/Vivhite.Harmony.dll</HarmonyOutput>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Lib.Harmony" Version="2.4.3" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
-    <Reference Include="0Harmony" HintPath="$(PkgLib_Harmony)/lib/net472/0Harmony.dll" Private="false" />
-    <EmbeddedResource Include="$(PkgLib_Harmony)/lib/net472/0Harmony.dll" LogicalName="Vivhite.0Harmony.dll" Condition="'$(PkgLib_Harmony)' != ''" />
+    <PackageReference Include="Mono.Cecil" Version="0.11.6" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
+    <Reference Include="Vivhite.Harmony" HintPath="$(HarmonyOutput)" Private="false" />
+    <EmbeddedResource Include="$(HarmonyOutput)" LogicalName="Vivhite.Harmony.dll" />
     <EmbeddedResource Include="$(PkgLib_Harmony)/LICENSE" LogicalName="Vivhite.Harmony-LICENSE.txt" Condition="'$(PkgLib_Harmony)' != ''" />
     <Reference Include="$(GameAssemblies)/FrontierTale.ModSDK.dll;$(GameAssemblies)/Assembly-CSharp.dll;$(GameAssemblies)/Newtonsoft.Json.dll;$(GameAssemblies)/UniTask.dll;$(GameAssemblies)/UnityEngine.CoreModule.dll;$(GameAssemblies)/UnityEngine.UIModule.dll;$(GameAssemblies)/UnityEngine.ImageConversionModule.dll;$(GameAssemblies)/UnityEngine.UI.dll;$(GameAssemblies)/Unity.TextMeshPro.dll;$(GameAssemblies)/spine-csharp.dll;$(GameAssemblies)/spine-unity.dll">
       <Private>false</Private>
       <ExternallyResolved>true</ExternallyResolved>
     </Reference>
   </ItemGroup>
+  <UsingTask TaskName="RenameVivhiteHarmony" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <InputPath ParameterType="System.String" Required="true" />
+      <OutputPath ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Reference Include="$(PkgMono_Cecil)/lib/netstandard2.0/Mono.Cecil.dll" />
+      <Using Namespace="Mono.Cecil" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        using (var harmony = AssemblyDefinition.ReadAssembly(InputPath))
+        {
+            harmony.Name.Name = "Vivhite.Harmony";
+            harmony.MainModule.Name = "Vivhite.Harmony.dll";
+            harmony.Write(OutputPath, new WriterParameters { DeterministicMvid = true });
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="PrepareVivhiteHarmony" BeforeTargets="PrepareForBuild"
+          Inputs="$(HarmonyInput);$(MSBuildProjectFullPath)" Outputs="$(HarmonyOutput)">
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(HarmonyOutput)'))" />
+    <RenameVivhiteHarmony InputPath="$(HarmonyInput)" OutputPath="$(HarmonyOutput)" />
+    <ItemGroup>
+      <FileWrites Include="$(HarmonyOutput)" />
+    </ItemGroup>
+  </Target>
   <Target Name="CheckGame" BeforeTargets="ResolveAssemblyReferences">
     <Error Condition="!Exists('$(GameAssemblies)/FrontierTale.ModSDK.dll')" Text="Set -p:GameDir to the Frontier Tale installation directory." />
   </Target>

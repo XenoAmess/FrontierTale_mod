@@ -28,7 +28,7 @@
 dotnet build mod_vivhite/Source/Vivhite.csproj -c Release '-p:GameDir=Z:/SteamLibrary/steamapps/common/FrontierTale'
 ```
 
-构建把入口 DLL 复制到 `vivhite/`。入口 DLL 内嵌 Harmony 2.4.3 及其 MIT 许可。
+构建把入口 DLL 复制到 `vivhite/`。入口 DLL 内嵌适用于游戏 Mono 运行时的 Harmony 2.4.3 及其 MIT 许可。构建时给这份依赖独立的程序集名称 `Vivhite.Harmony`，避免绑定到其他组件加载的同名 `0Harmony`。
 
 ## 美术素材
 
