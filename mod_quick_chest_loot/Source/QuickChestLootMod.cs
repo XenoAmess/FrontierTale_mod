@@ -14,6 +14,7 @@ namespace QuickChestLoot
         private const double InitialPickupDelay = 0.7;
         private const double PickupInterval = 0.35;
         private const int CoinType = 7;
+        private const string AutomaticPickupPreference = "frontiertale.quick-chest-loot.automatic-pickup";
         private const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
 
         private FieldInfo searchCoroutine;
@@ -32,11 +33,17 @@ namespace QuickChestLoot
         private Func<UserDataManager, List<CommonData>, ulong, int, bool> hasReceiveSpace;
 
         private List<BagItem> activePickSlots;
+        private ModContext context;
+        private UICanvas settingsHost;
+        private double nextSettingsScan;
+        private bool automaticPickup;
         private bool finished;
         private double nextPickupTime;
 
         public override void Load(ModContext context)
         {
+            this.context = context;
+            automaticPickup = PlayerPrefs.GetInt(AutomaticPickupPreference, 1) != 0;
             searchCoroutine = GetField(typeof(WildBagUI), "pickSearchCoroutine", typeof(Coroutine));
             pickSlots = GetField(typeof(WildBagUI), "totalPickItems", typeof(List<BagItem>));
             unlockReady = GetField(typeof(UICanvas), "clickMask", typeof(Action));
@@ -64,6 +71,7 @@ namespace QuickChestLoot
         {
             Canvas.preWillRenderCanvases -= RevealBeforeRender;
             activePickSlots = null;
+            settingsHost = null;
         }
 
         private void RevealBeforeRender()
@@ -107,8 +115,15 @@ namespace QuickChestLoot
                 return;
 
             var ui = UIManager.Instance;
+            var top = ui.GetTopUICanvas();
+            if (top is StartUI || top is GeneralUI)
+                UpdateSettings(top);
             TryAutoUnlock(ui);
             if (!(ui.GetTopUICanvas() is WildBagUI chest) || chest == null || !chest.isActiveAndEnabled)
+                return;
+
+            SkipSearch(chest);
+            if (!automaticPickup)
                 return;
 
             var slots = (List<BagItem>)pickSlots.GetValue(chest);
@@ -121,7 +136,6 @@ namespace QuickChestLoot
                 activePickSlots = slots;
                 finished = false;
                 nextPickupTime = Time.unscaledTimeAsDouble + InitialPickupDelay;
-                SkipSearch(chest);
             }
 
             if (!Application.isFocused || ui.GetActiveInputTopCanvas() != null || !UserDataManager.IsActive())
@@ -164,6 +178,30 @@ namespace QuickChestLoot
             finished = true;
             if (hasUnfittingItem)
                 showBagFullWarning();
+        }
+
+        private void UpdateSettings(UICanvas host)
+        {
+            double now = Time.unscaledTimeAsDouble;
+            if (host == settingsHost && now < nextSettingsScan)
+                return;
+
+            settingsHost = host;
+            nextSettingsScan = now + 0.25;
+            var settings = host.GetComponentInChildren<SettingNode>();
+            if (settings != null && settings.GetComponentInChildren<ChestPickupSettingsRow>(true) == null)
+                ChestPickupSettingsRow.Mount(context, settings, () => automaticPickup, SetAutomaticPickup);
+        }
+
+        private void SetAutomaticPickup(bool enabled)
+        {
+            if (automaticPickup == enabled)
+                return;
+
+            automaticPickup = enabled;
+            activePickSlots = null;
+            PlayerPrefs.SetInt(AutomaticPickupPreference, enabled ? 1 : 0);
+            PlayerPrefs.Save();
         }
 
         private static bool HasLoot(BagItem slot)
